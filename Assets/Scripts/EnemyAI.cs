@@ -9,6 +9,7 @@ public class EnemyAI : MonoBehaviour
     //references
     [SerializeField] Transform target;
     NavMeshAgent navAgent;
+    Animator anim;
 
     //parameters
     [SerializeField] float angerDist = 5f;
@@ -21,17 +22,24 @@ public class EnemyAI : MonoBehaviour
     void Start()
     {
         navAgent = GetComponent<NavMeshAgent>();
+        anim = GetComponent<Animator>();
     }
 
     void Update()
     {
         float distToPlayer = Vector3.Distance(target.position, transform.position);
-        if (distToPlayer <= angerDist) isAggro = true;
+        if (distToPlayer <= angerDist && distToPlayer >= navAgent.stoppingDistance)
+        {
+            isAggro = true;
+            Debug.Log("is aggro");
+        }
 
         if (isAggro)
         {
             RotateToFacePlayer();
             DefineAggroState(distToPlayer);
+            anim.SetTrigger("isMoving");
+            
         }
 
 
@@ -42,31 +50,44 @@ public class EnemyAI : MonoBehaviour
         if (distToPlayer < navAgent.stoppingDistance) AttackTarget();
         else ChaseTarget();
 
-        if (distToPlayer >= stoppingDist) isAggro = false;
+        if (distToPlayer >= stoppingDist)
+        {
+            isAggro = false;
+            anim.SetTrigger("isIdle");
+            Debug.Log("is idling");
+        }
     }
 
-    void ChaseTarget()
-    {
-        if (isAggro) navAgent.SetDestination(target.position);
-    }
+        void ChaseTarget()
+        {
+            if (isAggro) navAgent.SetDestination(target.position);
+        }
 
-    void AttackTarget()
-    {
-        Debug.Log("attacking player");
-    }
+        void AttackTarget()
+        {
+            isAggro = false;
+            Debug.Log("attacking player");
+            anim.SetTrigger("isAttacking");
+        }
 
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.DrawWireSphere(transform.position, angerDist);
-        Gizmos.DrawWireSphere(transform.position, stoppingDist);
-    }
+        void OnDrawGizmosSelected()
+        {
+            Gizmos.DrawWireSphere(transform.position, angerDist);
+            Gizmos.DrawWireSphere(transform.position, stoppingDist);
+        }
 
-    void RotateToFacePlayer()
-    {
-        Vector3 direction = (target.position - transform.position).normalized;
-        Quaternion currentRotation = transform.rotation;
-        Quaternion desiredRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+        void RotateToFacePlayer()
+        {
+            Vector3 direction = (target.position - transform.position).normalized;
+            Quaternion currentRotation = transform.rotation;
+            Quaternion desiredRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
 
-        transform.rotation = Quaternion.Lerp(currentRotation, desiredRotation, Time.deltaTime * rotationSpeed);
-    }
+            transform.rotation = Quaternion.Lerp(currentRotation, desiredRotation, Time.deltaTime * rotationSpeed);
+        }
+
+        public void OnDamageTaken()
+        {
+            isAggro = true;
+        } 
+
 }
